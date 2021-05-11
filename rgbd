@@ -1,0 +1,40 @@
+#! /bin/python3
+from openni import openni2
+from openni import _openni2 as c_api
+import numpy as np
+import cv2
+import sys
+
+IMG_DIR = sys.argv[1]
+
+##### 1. 设备接入 #####
+openni2.initialize('./Orbbec/Redist')
+dev = openni2.Device.open_any()
+depth_stream = dev.create_depth_stream()
+color_stream = dev.create_color_stream()
+depth_stream.start()
+depth_stream.set_video_mode(c_api.OniVideoMode(pixelFormat = c_api.OniPixelFormat.ONI_PIXEL_FORMAT_DEPTH_100_UM, resolutionX = 640, resolutionY = 480, fps = 30))
+color_stream.start()
+image_depth = np.zeros((480, 640))
+color_depth = np.zeros((480, 640,3))
+##### 2. 生成视频 #####
+# Loop
+import time
+fps=24
+period = 1.0/fps
+i=0
+while 1:
+    time_before = time.perf_counter()
+    print(i)
+    i=i+1
+
+    depth_frame = depth_stream.read_frame()
+    color_frame = color_stream.read_frame()
+    image_depth = np.frombuffer(depth_frame.get_buffer_as_uint8(), dtype=np.uint16).reshape((480, 640))
+    image_color = np.frombuffer(color_frame.get_buffer_as_uint8(), dtype=np.uint8).reshape((480, 640,3))
+    image_color = cv2.cvtColor(image_color,cv2.COLOR_BGR2RGB)
+    cv2.imwrite(IMG_DIR+'/img'+i+'_depth.jpeg',image_depth)
+    cv2.imwrite(IMG_DIR+'/img'+i+'_color.jpeg',image_color)
+
+    while (time.perf_counter() - time_before) < period:
+        time.sleep(0.001)  # precision here

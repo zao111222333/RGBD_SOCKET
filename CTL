@@ -1,0 +1,5 @@
+#! /bin/bash
+cd $(dirname $0)
+IMG_DIR=/home/pi/Astra/ori_2102282210_nomodel/img
+mkdir -p $IMG_DIR
+sudo ./rgbd $IMG_DIR
