@@ -1,0 +1,81 @@
+#! /bin/python3
+from openni import openni2
+from openni import _openni2 as c_api
+import numpy as np
+import cv2
+import sys
+
+import socket
+import struct
+
+
+IMG_DIR = sys.argv[1]
+TAG_IP = sys.argv[2]
+TAG_PORT = int(sys.argv[3])
+d_len = 1024
+
+##### 1. 设备接入 #####
+openni2.initialize('./Orbbec/Redist')
+dev = openni2.Device.open_any()
+#depth_stream = dev.create_depth_stream()
+color_stream = dev.create_color_stream()
+#depth_stream.start()
+#depth_stream.set_video_mode(c_api.OniVideoMode(pixelFormat = c_api.OniPixelFormat.ONI_PIXEL_FORMAT_DEPTH_100_UM, resolutionX = 640, resolutionY = 480, fps = 30))
+color_stream.start()
+#image_depth = np.zeros((480, 640))
+color_depth = np.zeros((480, 640,3))
+
+#### socket ####
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((TAG_IP, TAG_PORT))
+except socket.error as msg:
+    print (msg)
+    sys.exit(1)
+b = s.recv(1024) 
+bs = str(b, encoding = "utf8")
+print (bs)
+
+##### 2. 生成视频 #####
+# Loop
+import time
+fps=10
+period = 1.0/fps
+i=0
+state = False
+while 1:
+    state = not state 
+    time_before = time.perf_counter()
+    print(i)
+    i=i+1
+    ttt=time.perf_counter()
+
+    #depth_frame = depth_stream.read_frame()
+    color_frame = color_stream.read_frame()
+    #image_depth = np.frombuffer(depth_frame.get_buffer_as_uint8(), dtype=np.uint16).reshape((480, 640))
+    image_color = np.frombuffer(color_frame.get_buffer_as_uint8(), dtype=np.uint8).reshape((480, 640,3))
+    image_color = cv2.cvtColor(image_color,cv2.COLOR_BGR2RGB)
+    print("shot")
+    print(time.perf_counter()-ttt)
+    ttt=time.perf_counter()
+    if state:
+        bytes_0 = image_color.tobytes()
+        s.send(bytes_0)
+    else:
+        bytes_1 = image_color.tobytes()
+        s.send(bytes_0)
+
+    #cv2.imwrite(IMG_DIR+'/img'+str(i)+'_depth.jpeg',image_depth)
+    #cv2.imwrite(IMG_DIR+'/img_color.jpeg',image_color)
+    #ls = [image_color_bytes[index:index+d_len]for index in range(len(image_color_bytes))if (index % d_len == 0)]
+    # 每3个字节分隔组成list
+    
+    # for data in ls:
+    #     s.send(data)
+    print("send")
+    print(time.perf_counter()-ttt)
+
+    break
+    while (time.perf_counter() - time_before) < period:
+        time.sleep(0.001)  # precision here
+    #time.sleep(0.1)
