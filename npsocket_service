@@ -1,9 +1,0 @@
-#! /bin/python3
-from npsocket import SocketNumpyArray
-
-sock_receiver = SocketNumpyArray()
-sock_receiver.initalize_receiver(9999) # the 9999 is the port you can change it with your own. 
-while True:
-    frame = sock_receiver.receive_array()  # Receiving the image as numpy array. 
-    # Display
-    print(frame[0][0])
